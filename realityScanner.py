@@ -15,7 +15,10 @@ import customtkinter
 
 
 class ScannerApp:
-    URL = "https://bgp.tools/prefix"
+    URL_MAIN = "https://bgp.tools"
+    URL_ROUTE = "/prefix"
+    URL = URL_MAIN + URL_ROUTE
+
     TIMEOUT = 3
 
     def __init__(self):
@@ -62,10 +65,10 @@ class ScannerApp:
         self.ip_label = customtkinter.CTkLabel(
             self.root, text="Your server IP address", fg_color="transparent"
         )
-        self.ip_label.pack()
+        self.ip_label.pack(pady=5)
 
         self.ip_entry = customtkinter.CTkEntry(self.root, placeholder_text="IP:")
-        self.ip_entry.pack()
+        self.ip_entry.pack(pady=5)
 
         self.search_button = customtkinter.CTkButton(
             master=self.root, text="Search", command=self.search_input
@@ -82,7 +85,7 @@ class ScannerApp:
             self.root, orientation="horizontal", width=100
         )
         self.progress_bar.set(0)
-        self.progress_bar.pack(side='right', anchor='w',pady="10")
+        self.progress_bar.pack(side='right', anchor='w', pady="10")
 
         self.link = customtkinter.CTkLabel(
             self.root, text="About", font=('Helvetica', 15), cursor="hand2",
@@ -110,7 +113,6 @@ class ScannerApp:
     def callback(self, url):
         webbrowser.open_new_tab(url)
 
-
     def search_input(self):
         ip_search = self.ip_entry.get()
         thread = Thread(target=self.run, args=(ip_search,))
@@ -124,12 +126,19 @@ class ScannerApp:
             res = requests.get(
                 f"{self.URL}/{ip}", headers=header, timeout=self.TIMEOUT
             )
-            print(res.status_code)
             if res.status_code == 403:
-                self.log_label_set("Your IP has been blocked!")
+                self.log_label_set("Your IP BLOCKED by bgp.tools")
+        except requests.exceptions.RequestException as e:
+            try:
+                res_try = requests.get(self.URL_MAIN, headers=header, timeout=5)
+                if res_try.status_code == 403:
+                    self.log_label_set("Your IP BLOCKED by bgp.tools")
+                    return False
+            except requests.exceptions.RequestException as e:
+                self.log_label_set("Cannot connect to bgp.tools \n Check your internet connection")
                 return False
-        except requests.exceptions.RequestException:
-            self.log_label_set("Cannot connect to bgp.tools")
+            self.log_label_set("Cannot connect to bgp.tools \n Please try again")
+
             return False
         return res
 

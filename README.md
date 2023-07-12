@@ -3,6 +3,6 @@ TLS scanner for Reality friendly domains based on bgp.tools
 
 This software scans the IP range of your server to find the domains that are in that range and are suitable for sni reality.
 
-![](https://github.com/B3H1Z/Reality-TLS-Scanner-GUI/blob/main/example.jpg)
+![](https://github.com/B3H1Z/Reality-TLS-Scanner-GUI/blob/main/example.jpg =501x460)
 
-For GUI Version Visit Here: [Reality Friendly Scanner](https://github.com/B3H1Z/Reality-TLS-Scanner-GUI)
+For CLI Version Visit Here: [Reality Friendly Scanner CLI](https://github.com/B3H1Z/Reality-TLS-Scanner)

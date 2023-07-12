@@ -5,7 +5,6 @@ import webbrowser
 import requests
 import urllib.request
 import socket
-import ssl
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 import tldextract
@@ -15,31 +14,37 @@ from threading import Thread
 import customtkinter
 
 
-class TableApp:
+class ScannerApp:
     URL = "https://bgp.tools/prefix"
     TIMEOUT = 3
 
     def __init__(self):
         customtkinter.set_appearance_mode("system")
         customtkinter.set_default_color_theme("blue")
+
         self.root = customtkinter.CTk()
         self.root.title("Reality Friendly Scanner | Coded by: @B3H1")
         self.root.minsize(500, 500)
-        self.icon_path = self.resource_path("icon.ico")
+
+        self.icon_path = self.resource_path("assets/icon.ico")
         self.root.iconbitmap(self.icon_path)
+
         self.create_table()
         self.create_input_fields()
         self.create_progress_bar()
 
-    def resource_path(self,relative_path):
+    def resource_path(self, relative_path):
         base_path = getattr(
             sys,
             '_MEIPASS',
-            os.path.dirname(os.path.abspath(__file__)))
+            os.path.dirname(os.path.abspath(__file__))
+        )
         return os.path.join(base_path, relative_path)
 
     def create_table(self):
-        self.table = ttk.Treeview(self.root, columns=('URL', 'IP', 'Info'), show='headings', height=15)
+        self.table = ttk.Treeview(
+            self.root, columns=('URL', 'IP', 'Info'), show='headings', height=15
+        )
 
         self.table.bind('<Double-1>', self.copy_cell_content)
 
@@ -54,23 +59,35 @@ class TableApp:
         self.table.pack(pady=10)
 
     def create_input_fields(self):
-        self.ip_label = customtkinter.CTkLabel(self.root, text="Your server IP address", fg_color="transparent")
+        self.ip_label = customtkinter.CTkLabel(
+            self.root, text="Your server IP address", fg_color="transparent"
+        )
         self.ip_label.pack()
+
         self.ip_entry = customtkinter.CTkEntry(self.root, placeholder_text="IP:")
         self.ip_entry.pack()
 
-        self.search_button = customtkinter.CTkButton(master=self.root, text="Search", command=self.search_input)
+        self.search_button = customtkinter.CTkButton(
+            master=self.root, text="Search", command=self.search_input
+        )
         self.search_button.pack(pady=10)
 
     def create_progress_bar(self):
-        self.percentage_label = customtkinter.CTkLabel(self.root, text="0%", fg_color="transparent")
+        self.percentage_label = customtkinter.CTkLabel(
+            self.root, text="0%", fg_color="transparent"
+        )
         self.percentage_label.pack(side='right', anchor='w', padx="10")
-        self.progress_bar = customtkinter.CTkProgressBar(self.root, orientation="horizontal", width=100)
-        self.progress_bar.set(0)
-        self.progress_bar.pack(side='right', anchor='w')
 
-        self.link = customtkinter.CTkLabel(self.root, text="About", font=('Helveticabold', 15), cursor="hand2",
-                                           padx="10")
+        self.progress_bar = customtkinter.CTkProgressBar(
+            self.root, orientation="horizontal", width=100
+        )
+        self.progress_bar.set(0)
+        self.progress_bar.pack(side='right', anchor='w',pady="10")
+
+        self.link = customtkinter.CTkLabel(
+            self.root, text="About", font=('Helvetica', 15), cursor="hand2",
+            padx="10"
+        )
         self.link.pack(side='left')
         self.link.bind("<Button-1>", lambda e: self.callback("https://behnam.cloud"))
 
@@ -84,36 +101,47 @@ class TableApp:
 
         messagebox.showinfo("Domain Copied", f"{cell_content} copied to clipboard.")
 
+    def add_row(self, url, ip, info):
+        self.table.insert('', 'end', values=(url, ip, info))
+
+    def log_label_set(self, text):
+        self.ip_label.configure(text=f"{text}")
+
     def callback(self, url):
         webbrowser.open_new_tab(url)
 
-    def add_row(self, url, ip, info):
-        self.table.insert('', 'end', values=(url, ip, info))
 
     def search_input(self):
         ip_search = self.ip_entry.get()
         thread = Thread(target=self.run, args=(ip_search,))
         thread.start()
 
-    def redirect_prints_to_label(self, text):
-        self.ip_label.configure(text=f"{text}")
-
     def send_request(self, ip):
         ua = UserAgent()
         header = {'User-Agent': ua.random}
-        res = requests.get(f"{self.URL}/{ip}", headers=header, timeout=self.TIMEOUT)
+
+        try:
+            res = requests.get(
+                f"{self.URL}/{ip}", headers=header, timeout=self.TIMEOUT
+            )
+            print(res.status_code)
+            if res.status_code == 403:
+                self.log_label_set("Your IP has been blocked!")
+                return False
+        except requests.exceptions.RequestException:
+            self.log_label_set("Cannot connect to bgp.tools")
+            return False
         return res
 
     def cipher_checker(self, domain):
-        context = ssl.create_default_context()
+        context = socket.create_default_context()
         try:
             with socket.create_connection((domain, 443)) as sock:
                 with context.wrap_socket(sock, server_hostname=domain) as ssock:
-                    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
                     ssock_version = ssock.version()
                     ssock_cipher = ssock.cipher()
             return ssock_cipher
-        except Exception:
+        except socket.error:
             pass
 
     def domain_ip_range_checker(self, domain):
@@ -134,7 +162,7 @@ class TableApp:
                     return domain, ssock_cipher, dns
                 else:
                     return False
-        except Exception:
+        except urllib.error.URLError:
             return False
 
     def check_useless_domain(self, url):
@@ -149,6 +177,8 @@ class TableApp:
 
     def fdns_html_parser(self, html):
         domains = []
+        if not html:
+            return False
         soup = BeautifulSoup(html.text, 'html.parser')
         table = soup.find('table', id='fdnstable')
         if table:
@@ -172,6 +202,8 @@ class TableApp:
 
     def rdns_html_parser(self, html):
         domains = []
+        if not html:
+            return False
         soup = BeautifulSoup(html.text, 'html.parser')
         table = soup.find('table', id='rdnstable')
         if table:
@@ -191,7 +223,7 @@ class TableApp:
             all_count = len(domains)
             count = 0
             for domain in domains:
-                self.redirect_prints_to_label(domain)
+                self.log_label_set(domain)
                 if self.check_useless_domain(domain):
                     st = self.domain_checker(domain)
                     if st:
@@ -199,45 +231,37 @@ class TableApp:
                         self.add_row(domain, dns, ssock_cipher)
                 count += 1
                 prog = round((count / all_count) * 100)
-                self.update_percentage(prog)
+                self.percentage_label.configure(text=f"{prog}%")
                 self.progress_bar.set(prog / 100)
                 self.root.update()
         else:
-            self.redirect_prints_to_label("There is no domain")
-        self.stop_progress_bar()
+            self.log_label_set("There is no domain")
+        self.progress_bar.stop()
 
     def validate_ipv4_address(self, address):
-        ipv4_pattern = "^(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+        ipv4_pattern = (
+            r"^(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\."
+            r"(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+        )
         return re.match(ipv4_pattern, address)
 
     def run(self, input_ip):
         if self.validate_ipv4_address(input_ip):
-            self.redirect_prints_to_label("Waiting for getting data from bgp.tools ...")
+            self.log_label_set("Waiting for getting data from bgp.tools ...")
             html_response = self.send_request(input_ip)
-            rdns = self.rdns_html_parser(html_response)
-            fdns = self.fdns_html_parser(html_response)
-            self.redirect_prints_to_label("Checking Reversed Dns Domains ...")
-            self.run_dns(rdns)
-            self.redirect_prints_to_label("Checking Forward Dns Domains ...")
-            self.run_dns(fdns)
-            self.redirect_prints_to_label("Done!")
+            if html_response:
+                rdns = self.rdns_html_parser(html_response)
+                fdns = self.fdns_html_parser(html_response)
+                self.log_label_set("Checking Reversed Dns Domains ...")
+                self.run_dns(rdns)
+                self.log_label_set("Checking Forward Dns Domains ...")
+                self.run_dns(fdns)
+                self.log_label_set("Done!")
         else:
-            self.redirect_prints_to_label("Please Enter a Valid IPv4 address")
-            self.stop_progress_bar()
-
-    def update_percentage(self, percentage):
-        self.percentage_label.configure(text=f"{percentage}%")
-
-    def start_progress_bar(self):
-        self.progress_bar.start()
-
-    def stop_progress_bar(self):
-        self.progress_bar.stop()
-
-    def start(self):
-        self.progress_bar.pack(pady=10)
-        self.root.mainloop()
+            self.log_label_set("Please Enter a Valid IPv4 address")
+            self.progress_bar.stop()
 
 
-app = TableApp()
-app.start()
+if __name__ == "__main__":
+    app = ScannerApp()
+    app.root.mainloop()

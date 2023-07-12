@@ -1,5 +1,6 @@
 import os
 import re
+import ssl
 import sys
 import webbrowser
 import requests
@@ -29,7 +30,7 @@ class ScannerApp:
         self.root.title("Reality Friendly Scanner | Coded by: @B3H1")
         self.root.minsize(500, 500)
 
-        self.icon_path = self.resource_path("assets/icon.ico")
+        self.icon_path = self.resource_path("icon.ico")
         self.root.iconbitmap(self.icon_path)
 
         self.create_table()
@@ -123,27 +124,26 @@ class ScannerApp:
         header = {'User-Agent': ua.random}
 
         try:
+            res_try = requests.get(self.URL_MAIN, headers=header, timeout=5)
+            if res_try.status_code == 403:
+                self.log_label_set("Your IP BLOCKED by bgp.tools")
+                return False
+        except requests.exceptions.RequestException as e:
+            self.log_label_set("Cannot connect to bgp.tools \n Check your internet connection")
+            return False
+
+        try:
             res = requests.get(
                 f"{self.URL}/{ip}", headers=header, timeout=self.TIMEOUT
             )
-            if res.status_code == 403:
-                self.log_label_set("Your IP BLOCKED by bgp.tools")
         except requests.exceptions.RequestException as e:
-            try:
-                res_try = requests.get(self.URL_MAIN, headers=header, timeout=5)
-                if res_try.status_code == 403:
-                    self.log_label_set("Your IP BLOCKED by bgp.tools")
-                    return False
-            except requests.exceptions.RequestException as e:
-                self.log_label_set("Cannot connect to bgp.tools \n Check your internet connection")
-                return False
             self.log_label_set("Cannot connect to bgp.tools \n Please try again")
 
             return False
         return res
 
     def cipher_checker(self, domain):
-        context = socket.create_default_context()
+        context = ssl.create_default_context()
         try:
             with socket.create_connection((domain, 443)) as sock:
                 with context.wrap_socket(sock, server_hostname=domain) as ssock:

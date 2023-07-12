@@ -1,1 +1,1 @@
-"# Reality-Friendly-Scanner-gui" 
+Reality-Friendly-Scanner-gui 
